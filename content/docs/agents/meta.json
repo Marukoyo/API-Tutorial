@@ -1,0 +1,5 @@
+{
+  "title": "编程 Agent",
+  "defaultOpen": true,
+  "pages": ["claude-code", "codex", "..."]
+}

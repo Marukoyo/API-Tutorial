@@ -1,0 +1,164 @@
+---
+title: Claude Code
+description: 在 Claude Code（终端 / VS Code 插件）中使用 Sub2API
+---
+
+<Callout title="使用哪个分组的密钥？">
+使用 **Anthropic 分组** 的密钥。Base URL 填 `https://api.muteki.site`，**不要**带 `/v1`。
+</Callout>
+
+## 安装 Claude Code
+
+<Tabs groupId="os" items={['Windows', 'macOS / Linux']} persist>
+<Tab>
+在 PowerShell 中运行：
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+也可以用 WinGet：`winget install Anthropic.ClaudeCode`（这种方式不会自动更新）。
+</Tab>
+<Tab>
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+macOS 也可以用 Homebrew：`brew install --cask claude-code`（这种方式不会自动更新）。
+</Tab>
+</Tabs>
+
+已经装了 Node.js 的话，也可以用 npm 安装：`npm install -g @anthropic-ai/claude-code`。
+
+安装完成后运行 `claude --version` 确认安装成功。
+
+## 配置
+
+<Tabs items={['配置文件（推荐）', '环境变量', 'CC Switch']}>
+<Tab>
+编辑用户级配置文件，没有就新建：
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.claude\settings.json` |
+| macOS / Linux | `~/.claude/settings.json` |
+
+写入以下内容（已有其他配置的话，把 `env` 里的三项合并进去）：
+
+```json title="settings.json"
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.muteki.site",
+    "ANTHROPIC_AUTH_TOKEN": "sk-你的密钥",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  }
+}
+```
+
+配置文件对所有终端窗口永久生效，并且优先级高于环境变量。
+</Tab>
+<Tab>
+只在当前终端窗口生效，关掉窗口就失效，适合临时测试：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+export ANTHROPIC_BASE_URL="https://api.muteki.site"
+export ANTHROPIC_AUTH_TOKEN="sk-你的密钥"
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+claude
+```
+</Tab>
+<Tab>
+```powershell
+$env:ANTHROPIC_BASE_URL = "https://api.muteki.site"
+$env:ANTHROPIC_AUTH_TOKEN = "sk-你的密钥"
+$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+claude
+```
+</Tab>
+</Tabs>
+</Tab>
+<Tab>
+[CC Switch](https://ccswitch.ai) 是一个图形化的 Claude Code / Codex 配置管理工具，可以保存多套配置随时切换，不用手动改文件。
+
+最简单的用法：在控制台 **API 密钥** 页面点击 **导入到 CC Switch**，确认导入后在 CC Switch 中启用这个配置即可。
+</Tab>
+</Tabs>
+
+<Callout type="warn" title="密钥不要写进项目目录">
+项目里的 `.claude/settings.json` 通常会提交到 Git 仓库。密钥只写在用户目录下的 `~/.claude/settings.json`。
+</Callout>
+
+### 各配置项的含义
+
+| 配置项 | 说明 |
+| --- | --- |
+| `ANTHROPIC_BASE_URL` | 网关地址，不带 `/v1` |
+| `ANTHROPIC_AUTH_TOKEN` | 你的密钥，以 `Authorization: Bearer` 方式发送 |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 关闭遥测、错误上报等非必要请求。同时会关闭自动更新，需要时手动运行 `claude update` |
+
+<Callout type="info">
+请用 `ANTHROPIC_AUTH_TOKEN`，不要用 `ANTHROPIC_API_KEY`。后者在交互模式下需要手动确认一次，拒绝过一次就会被静默忽略。
+</Callout>
+
+## 启动并验证
+
+在项目目录下运行 `claude`，然后输入 `/status`，确认 **Anthropic base URL** 显示的是 `https://api.muteki.site`，再随便问一句测试即可。
+
+<Accordions>
+<Accordion title="首次启动还是要求登录 Anthropic 账号？">
+先确认配置文件路径和 JSON 格式都正确。如果仍然弹出登录引导，编辑 `~/.claude.json`（Windows 为 `%USERPROFILE%\.claude.json`；注意它在用户目录下，和 `.claude` 文件夹不是同一个东西），在最外层加上：
+
+```json
+"hasCompletedOnboarding": true
+```
+
+然后重新启动 `claude`。
+</Accordion>
+
+<Accordion title="提示认证冲突（auth conflict）？">
+说明之前登录过 claude.ai 账号，和网关密钥冲突了。在 Claude Code 里运行 `/logout` 退出官方账号即可。
+</Accordion>
+
+<Accordion title="报 400，提示 Extra inputs are not permitted 或 context_management？">
+在 `env` 里加一行 `"CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"`，关闭实验性功能后重启。
+</Accordion>
+</Accordions>
+
+## 指定模型（可选）
+
+默认不需要配置模型，Claude Code 会自动使用 Opus / Sonnet / Haiku。在会话中可以用 `/model` 切换。
+
+如果想固定使用某个模型，在 `env` 里加上（模型名以模型广场为准）：
+
+```json
+"ANTHROPIC_MODEL": "claude-sonnet-5-5"
+```
+
+想按档位分别指定，可以用 `ANTHROPIC_DEFAULT_OPUS_MODEL`、`ANTHROPIC_DEFAULT_SONNET_MODEL`、`ANTHROPIC_DEFAULT_HAIKU_MODEL`（Haiku 档位也用于后台小任务）。
+
+<Callout type="info">
+新模型需要较新版本的 Claude Code 才能识别，用不了新模型时先运行 `claude update`。
+</Callout>
+
+## VS Code 插件
+
+Claude Code 的 VS Code 插件与终端版共用 `~/.claude/settings.json`，但插件自身的登录检查不读取这个文件。为了避免插件弹出登录，建议在 VS Code 的用户设置（`Ctrl/Cmd + Shift + P` → **Preferences: Open User Settings (JSON)**）中再加上：
+
+```json title="VS Code settings.json"
+{
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.environmentVariables": [
+    { "name": "ANTHROPIC_BASE_URL", "value": "https://api.muteki.site" },
+    { "name": "ANTHROPIC_AUTH_TOKEN", "value": "sk-你的密钥" }
+  ]
+}
+```
+
+修改后重新加载 VS Code 窗口。
+
+## 使用限制
+
+通过网关使用时，Remote Control、语音输入等依赖 Anthropic 官方账号的功能不可用。
