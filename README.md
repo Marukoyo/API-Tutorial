@@ -1,6 +1,6 @@
 # API-Tutorial
 
-Sub2API 各家客户端 / Agent 的接入文档，基于 [Fumadocs](https://fumadocs.dev)（Next.js 静态导出）。
+Maru Code（基于 Sub2API 的 API 网关）各家客户端 / Agent 的接入文档，基于 [Fumadocs](https://fumadocs.dev)（Next.js 静态导出）。
 
 线上地址：<https://docs.muteki.site>
 

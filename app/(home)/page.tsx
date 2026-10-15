@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Bot, KeyRound, Monitor, Smartphone, Terminal } from 'lucide-react';
-import { apiBaseUrl } from '@/lib/shared';
+import { apiBaseUrl, appName } from '@/lib/shared';
 
 interface Client {
   name: string;
@@ -45,9 +45,9 @@ export default function HomePage() {
           <Bot className="size-3.5" />
           一个 API Key，接入所有 AI 客户端
         </div>
-        <h1 className="text-3xl font-bold tracking-tight md:text-5xl">Sub2API 接入指南</h1>
+        <h1 className="text-3xl font-bold tracking-tight md:text-5xl">{appName}</h1>
         <p className="max-w-2xl text-fd-muted-foreground md:text-lg">
-          手把手教你把 Claude Code、Codex、Claude Desktop、Kelivo、RikkaHub 等客户端接入 Sub2API 网关。
+          手把手教你把 Claude Code、Codex、Claude Desktop、Kelivo、RikkaHub 等客户端接入 Maru Code。
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
