@@ -1,0 +1,61 @@
+# Open Minis (/docs/chat/openminis)
+
+[Open Minis](https://openminis.app) 是一款开源的手机端侧 AI Agent，支持自定义 OpenAI / Anthropic 兼容的服务商。
+
+## 下载 [#下载]
+
+| 平台 | 下载 |
+| --- | --- |
+| iPhone / iPad | [App Store](https://apps.apple.com/cn/app/open-minis/id6759188481)（需要 iOS 16+） |
+| Android | [GitHub Releases](https://github.com/OpenMinis/OpenMinis/releases) |
+
+## 配置步骤 [#配置步骤]
+
+<Steps>
+<Step>
+### 打开服务商管理 [#打开服务商管理]
+
+进入 **设置**，在 **AI 服务商** 中点击 **管理 AI 服务商**。
+</Step>
+
+<Step>
+### 添加服务商 [#添加服务商]
+
+点击 **+** 进入 **添加 AI 服务商**（第一次使用需要先同意隐私说明），然后按要用的模型选择协议：
+
+- 用 GPT 模型：选择 **OpenAI**，使用 **OpenAI 分组** 的密钥
+- 用 Claude 模型：选择 **Anthropic**，使用 **Anthropic 分组** 的密钥
+</Step>
+
+<Step>
+### 填写信息 [#填写信息]
+
+| 字段 | 填写 |
+| --- | --- |
+| 标签 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| 自定义 API 地址 | `https://api.muteki.site`（**不带** `/v1`） |
+| 自动附加 "/v1" | **保持开启**（默认） |
+| API 格式（仅 OpenAI） | **Chat Completions** 或 **Responses API** 均可 |
+
+填好后点击 **添加 AI 服务商**。
+</Step>
+
+<Step>
+### 获取模型 [#获取模型]
+
+进入刚添加的服务商，在 **模型** 中点击 **刷新** 拉取模型列表。如果拉取失败，可以点击 **添加自定义模型** 手动输入模型 ID（以模型广场为准）。
+</Step>
+</Steps>
+
+<Callout type="warn" title="不要关闭「自动附加 /v1」">
+网上有些教程让你关掉这个开关，那是针对地址不带 `/v1` 的其他服务商。本站按上面的方式填写即可，关掉后 Anthropic 协议会请求到错误的地址。
+</Callout>
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="换了密钥后模型列表没变？">
+模型列表按密钥缓存，在服务商详情页点击 **刷新** 重新获取即可。
+</Accordion>
+</Accordions>

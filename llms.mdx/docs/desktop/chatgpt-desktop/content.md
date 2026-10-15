@@ -1,0 +1,59 @@
+# ChatGPT Desktop (/docs/desktop/chatgpt-desktop)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **OpenAI 分组** 的密钥。
+</Callout>
+
+2026 年 7 月起，Codex 桌面版已经并入 ChatGPT 桌面客户端（macOS / Windows）。客户端中的 **Codex** 可以接入网关，它和 Codex CLI 共用同一个配置文件。
+
+<Callout type="warn" title="只有 Codex 能接入网关">
+ChatGPT 桌面客户端的聊天功能绑定 ChatGPT 官方账号和订阅，不支持自定义 API。想用图形界面和 GPT 模型聊天，请使用 [Kelivo](/docs/chat/kelivo)、[RikkaHub](/docs/chat/rikkahub) 或 [Open Minis](/docs/chat/openminis)。
+</Callout>
+
+## 配置步骤 [#配置步骤]
+
+<Steps>
+<Step>
+### 安装 ChatGPT 桌面客户端 [#安装-chatgpt-桌面客户端]
+
+从 [chatgpt.com/download](https://chatgpt.com/download) 下载并安装。
+</Step>
+
+<Step>
+### 修改 Codex 配置文件 [#修改-codex-配置文件]
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.codex\config.toml` |
+| macOS | `~/.codex/config.toml` |
+
+目录或文件不存在就新建。Windows 可以按 `Win + R`，输入 `%USERPROFILE%\.codex` 打开目录。把下面三行加到文件**最开头**：
+
+```toml title="config.toml"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+openai_base_url = "https://api.muteki.site/v1"
+```
+
+已经按 [Codex](/docs/agents/codex) 教程配置过 CLI 的，可以跳过这一步。
+</Step>
+
+<Step>
+### 完全退出并重新打开客户端 [#完全退出并重新打开客户端]
+
+配置文件只在启动时读取。关闭窗口不等于退出，请从托盘 / 程序坞右键彻底退出后再打开。
+</Step>
+
+<Step>
+### 用 API Key 登录 Codex [#用-api-key-登录-codex]
+
+进入 Codex，在登录界面选择 **Sign in another way**（其他登录方式），选择用 API Key 登录，粘贴你的 `sk-` 密钥后点击 **Continue**。
+</Step>
+</Steps>
+
+## 注意事项 [#注意事项]
+
+- 用 API Key 登录时，部分依赖 ChatGPT 账号的 Codex 功能可能不可用。
+- 想换模型，修改 `config.toml` 中的 `model` 后重启客户端，模型名以模型广场中 OpenAI 分组的列表为准。
+- 不要用「方式二：自定义服务商」中的环境变量方式配置桌面客户端：从桌面图标启动的程序可能读不到终端里设置的环境变量。
+- 更多配置说明见 [Codex](/docs/agents/codex#注意事项)。

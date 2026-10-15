@@ -1,0 +1,90 @@
+# RikkaHub (/docs/chat/rikkahub)
+
+[RikkaHub](https://github.com/rikkahub/rikkahub) 是一款开源的 Android 原生 LLM 聊天客户端，**已内置 MaruCode 提供商**，填入密钥就能用。
+
+## 下载 [#下载]
+
+- [官网下载页](https://rikka-ai.com/download)（推荐）
+- [Google Play](https://play.google.com/store/apps/details?id=me.rerere.rikkahub)
+- [GitHub Releases](https://github.com/rikkahub/rikkahub/releases)（仅 arm64-v8a）
+
+<Callout type="warn">
+RikkaHub 有很多第三方修改版，请从以上官方渠道下载。
+</Callout>
+
+## 方式一：使用内置 MaruCode（推荐） [#方式一使用内置-marucode推荐]
+
+<Callout title="使用哪个分组的密钥？">
+内置提供商走 OpenAI 协议，用 **OpenAI 分组** 的密钥使用 GPT 模型。
+</Callout>
+
+<Steps>
+<Step>
+### 打开 MaruCode [#打开-marucode]
+
+进入 **设置 → 提供商**，点击 **MaruCode**。
+</Step>
+
+<Step>
+### 启用并填写密钥 [#启用并填写密钥]
+
+在 **配置** 标签页打开 **是否启用**，在 **API Key** 中粘贴你的 `sk-` 密钥。地址和接口类型都已经预设好，不需要修改。
+</Step>
+
+<Step>
+### 添加模型 [#添加模型]
+
+切换到 **模型** 标签页，从 **可用模型** 列表中添加你要用的模型。
+</Step>
+
+<Step>
+### 开始聊天 [#开始聊天]
+
+回到聊天界面，选择 MaruCode 下的模型即可。
+</Step>
+</Steps>
+
+## 方式二：手动添加提供商 [#方式二手动添加提供商]
+
+想用 Claude 模型，或者想自己管理配置时，可以手动添加。进入 **设置 → 提供商**，点击 **+** 添加提供商，选择类型后填写：
+
+<Tabs items={['OpenAI 类型（GPT 模型）', 'Claude 类型（Claude 模型）']}>
+<Tab>
+使用 **OpenAI 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+| API 路径 | `/chat/completions` |
+| Response API | 可选，开启后改用 `/responses` 接口 |
+
+开启 Response API 时，App 会提示「大部分提供商并不支持」，本站支持，可以忽略。
+</Tab>
+<Tab>
+使用 **Anthropic 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code Claude` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+
+RikkaHub 的 Claude 类型会在地址后面拼 `/messages`，所以这里也要带 `/v1`。
+</Tab>
+</Tabs>
+
+添加后在 **模型** 标签页添加模型，可以从 **可用模型** 中选择，也可以手动输入模型 ID。
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="可用模型列表是空的？">
+RikkaHub 获取模型失败时不会弹出报错，只会显示空列表。请检查 API Base Url：必须以 `/v1` 结尾，**末尾不要加 `/`**；再确认密钥没有填错、没有多余空格。
+</Accordion>
+
+<Accordion title="切换提供商类型后地址变了？">
+在 OpenAI / Claude 和 Google 类型之间切换时，App 会自动把地址里的 `/v1` 和 `/v1beta` 互相替换。切换后请重新检查 API Base Url。
+</Accordion>
+</Accordions>

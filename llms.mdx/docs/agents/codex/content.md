@@ -1,0 +1,152 @@
+# Codex (/docs/agents/codex)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **OpenAI 分组** 的密钥。Base URL 填 `https://api.muteki.site/v1`，**必须**带 `/v1`。
+</Callout>
+
+Codex CLI、Codex IDE 插件（VS Code 等）和 ChatGPT 桌面客户端里的 Codex **共用同一个配置文件**，配置一次三处都能用。桌面客户端的操作见 [ChatGPT Desktop](/docs/desktop/chatgpt-desktop)。
+
+## 安装 Codex CLI [#安装-codex-cli]
+
+<Tabs groupId="os" items={['Windows', 'macOS / Linux']} persist>
+<Tab>
+在 PowerShell 中运行：
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
+```
+</Tab>
+<Tab>
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+macOS 也可以用 Homebrew：`brew install --cask codex`。
+</Tab>
+</Tabs>
+
+已经装了 Node.js 的话，也可以用 npm 安装：`npm install -g @openai/codex`。
+
+安装完成后运行 `codex --version` 确认安装成功。
+
+## 配置文件位置 [#配置文件位置]
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.codex\config.toml` |
+| macOS / Linux | `~/.codex/config.toml` |
+
+目录或文件不存在就新建。Windows 可以按 `Win + R`，输入 `%USERPROFILE%\.codex` 打开目录。
+
+<Callout type="warn" title="修改前先备份">
+如果已经有自己的 Codex 配置，先复制一份备份，再把下面的内容合并进去，不要直接清空。
+</Callout>
+
+## 方式一：修改官方地址（推荐） [#方式一修改官方地址推荐]
+
+只把 Codex 内置的 OpenAI 服务地址指向网关，改动最少。
+
+<Steps>
+<Step>
+### 修改 config.toml [#修改-configtoml]
+
+把下面三行加到 `config.toml` 的**最开头**：
+
+```toml title="config.toml"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+openai_base_url = "https://api.muteki.site/v1"
+```
+
+`model` 可以换成模型广场里 OpenAI 分组的其他模型。
+</Step>
+
+<Step>
+### 用 API Key 登录 [#用-api-key-登录]
+
+如果之前用 ChatGPT 账号登录过 Codex，先运行 `codex logout` 退出。
+
+然后运行 `codex`，在登录界面选择 **Provide your own API key**，粘贴你的 `sk-` 密钥。
+
+也可以直接用命令登录：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+echo "sk-你的密钥" | codex login --with-api-key
+```
+</Tab>
+<Tab>
+```powershell
+"sk-你的密钥" | codex login --with-api-key
+```
+</Tab>
+</Tabs>
+</Step>
+
+<Step>
+### 验证 [#验证]
+
+运行 `codex`，输入 `/status` 确认当前使用的是 API Key 登录、地址为 `https://api.muteki.site/v1`，再发一句话测试。
+</Step>
+</Steps>
+
+## 方式二：自定义服务商 [#方式二自定义服务商]
+
+如果你还想保留官方 ChatGPT 账号登录，或者需要在多个服务之间切换，可以新增一个独立的服务商，用环境变量传递密钥。
+
+<Steps>
+<Step>
+### 修改 config.toml [#修改-configtoml-1]
+
+```toml title="config.toml"
+model_provider = "muteki"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+
+[model_providers.muteki]
+name = "Maru Code"
+base_url = "https://api.muteki.site/v1"
+wire_api = "responses"
+env_key = "MUTEKI_API_KEY"
+```
+</Step>
+
+<Step>
+### 设置环境变量 [#设置环境变量]
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+把下面这行加到 `~/.zshrc` 或 `~/.bashrc` 末尾，然后新开一个终端：
+
+```bash
+export MUTEKI_API_KEY="sk-你的密钥"
+```
+</Tab>
+<Tab>
+运行下面的命令写入用户环境变量，然后**新开**一个终端窗口：
+
+```powershell
+setx MUTEKI_API_KEY "sk-你的密钥"
+```
+</Tab>
+</Tabs>
+</Step>
+</Steps>
+
+<Callout type="info">
+从桌面图标启动的程序可能读不到终端里设置的环境变量（macOS 尤其明显）。在 ChatGPT 桌面客户端里使用 Codex 时，推荐用方式一。
+</Callout>
+
+## 在 IDE 插件中使用 [#在-ide-插件中使用]
+
+Codex 的 VS Code 等 IDE 插件读取同一个 `config.toml`。按上面任一方式配置好后，在插件的登录界面选择 **Use API Key** 并填入密钥（方式二无需登录），然后重启 IDE。
+
+## 注意事项 [#注意事项]
+
+- **顶层配置必须写在最前面**：`model`、`model_provider`、`openai_base_url` 这些配置项必须放在第一个 `[xxx]` 小节之前，否则会被当成那个小节的内容。
+- **只能写在用户级配置里**：项目目录下的 `.codex/config.toml` 会忽略 `openai_base_url`、`model_provider`、`model_providers` 这些配置。
+- **`wire_api` 只能是 `responses`**：新版 Codex 已移除 `chat`，填 `chat` 会直接报错。
+- **服务商 ID 不能叫 `openai`**：`openai`、`ollama`、`lmstudio` 是保留名称。
+- **改完要重启**：退出当前 Codex 会话后重新运行 `codex`；IDE 插件需要重启 IDE。
+- **图形化配置**：不想手动改文件，可以用 [CC Switch](https://ccswitch.ai) 管理 Codex 配置，或在控制台 **API 密钥** 页面点击 **使用密钥** 复制自动生成的配置。

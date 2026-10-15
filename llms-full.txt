@@ -1,0 +1,961 @@
+# Claude Code (/docs/agents/claude-code)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **Anthropic 分组** 的密钥。Base URL 填 `https://api.muteki.site`，**不要**带 `/v1`。
+</Callout>
+
+## 安装 Claude Code [#安装-claude-code]
+
+<Tabs groupId="os" items={['Windows', 'macOS / Linux']} persist>
+<Tab>
+在 PowerShell 中运行：
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+也可以用 WinGet：`winget install Anthropic.ClaudeCode`（这种方式不会自动更新）。
+</Tab>
+<Tab>
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+macOS 也可以用 Homebrew：`brew install --cask claude-code`（这种方式不会自动更新）。
+</Tab>
+</Tabs>
+
+已经装了 Node.js 的话，也可以用 npm 安装：`npm install -g @anthropic-ai/claude-code`。
+
+安装完成后运行 `claude --version` 确认安装成功。
+
+## 配置 [#配置]
+
+<Tabs items={['配置文件（推荐）', '环境变量', 'CC Switch']}>
+<Tab>
+编辑用户级配置文件，没有就新建：
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.claude\settings.json` |
+| macOS / Linux | `~/.claude/settings.json` |
+
+写入以下内容（已有其他配置的话，把 `env` 里的三项合并进去）：
+
+```json title="settings.json"
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.muteki.site",
+    "ANTHROPIC_AUTH_TOKEN": "sk-你的密钥",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  }
+}
+```
+
+配置文件对所有终端窗口永久生效，并且优先级高于环境变量。
+</Tab>
+<Tab>
+只在当前终端窗口生效，关掉窗口就失效，适合临时测试：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+export ANTHROPIC_BASE_URL="https://api.muteki.site"
+export ANTHROPIC_AUTH_TOKEN="sk-你的密钥"
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+claude
+```
+</Tab>
+<Tab>
+```powershell
+$env:ANTHROPIC_BASE_URL = "https://api.muteki.site"
+$env:ANTHROPIC_AUTH_TOKEN = "sk-你的密钥"
+$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+claude
+```
+</Tab>
+</Tabs>
+</Tab>
+<Tab>
+[CC Switch](https://ccswitch.ai) 是一个图形化的 Claude Code / Codex 配置管理工具，可以保存多套配置随时切换，不用手动改文件。
+
+最简单的用法：在控制台 **API 密钥** 页面点击 **导入到 CC Switch**，确认导入后在 CC Switch 中启用这个配置即可。
+</Tab>
+</Tabs>
+
+<Callout type="warn" title="密钥不要写进项目目录">
+项目里的 `.claude/settings.json` 通常会提交到 Git 仓库。密钥只写在用户目录下的 `~/.claude/settings.json`。
+</Callout>
+
+### 各配置项的含义 [#各配置项的含义]
+
+| 配置项 | 说明 |
+| --- | --- |
+| `ANTHROPIC_BASE_URL` | 网关地址，不带 `/v1` |
+| `ANTHROPIC_AUTH_TOKEN` | 你的密钥，以 `Authorization: Bearer` 方式发送 |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 关闭遥测、错误上报等非必要请求。同时会关闭自动更新，需要时手动运行 `claude update` |
+
+<Callout type="info">
+请用 `ANTHROPIC_AUTH_TOKEN`，不要用 `ANTHROPIC_API_KEY`。后者在交互模式下需要手动确认一次，拒绝过一次就会被静默忽略。
+</Callout>
+
+## 启动并验证 [#启动并验证]
+
+在项目目录下运行 `claude`，然后输入 `/status`，确认 **Anthropic base URL** 显示的是 `https://api.muteki.site`，再随便问一句测试即可。
+
+<Accordions>
+<Accordion title="首次启动还是要求登录 Anthropic 账号？">
+先确认配置文件路径和 JSON 格式都正确。如果仍然弹出登录引导，编辑 `~/.claude.json`（Windows 为 `%USERPROFILE%\.claude.json`；注意它在用户目录下，和 `.claude` 文件夹不是同一个东西），在最外层加上：
+
+```json
+"hasCompletedOnboarding": true
+```
+
+然后重新启动 `claude`。
+</Accordion>
+
+<Accordion title="提示认证冲突（auth conflict）？">
+说明之前登录过 claude.ai 账号，和网关密钥冲突了。在 Claude Code 里运行 `/logout` 退出官方账号即可。
+</Accordion>
+
+<Accordion title="报 400，提示 Extra inputs are not permitted 或 context_management？">
+在 `env` 里加一行 `"CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"`，关闭实验性功能后重启。
+</Accordion>
+</Accordions>
+
+## 指定模型（可选） [#指定模型可选]
+
+默认不需要配置模型，Claude Code 会自动使用 Opus / Sonnet / Haiku。在会话中可以用 `/model` 切换。
+
+如果想固定使用某个模型，在 `env` 里加上（模型名以模型广场为准）：
+
+```json
+"ANTHROPIC_MODEL": "claude-sonnet-5-5"
+```
+
+想按档位分别指定，可以用 `ANTHROPIC_DEFAULT_OPUS_MODEL`、`ANTHROPIC_DEFAULT_SONNET_MODEL`、`ANTHROPIC_DEFAULT_HAIKU_MODEL`（Haiku 档位也用于后台小任务）。
+
+<Callout type="info">
+新模型需要较新版本的 Claude Code 才能识别，用不了新模型时先运行 `claude update`。
+</Callout>
+
+## VS Code 插件 [#vs-code-插件]
+
+Claude Code 的 VS Code 插件与终端版共用 `~/.claude/settings.json`，但插件自身的登录检查不读取这个文件。为了避免插件弹出登录，建议在 VS Code 的用户设置（`Ctrl/Cmd + Shift + P` → **Preferences: Open User Settings (JSON)**）中再加上：
+
+```json title="VS Code settings.json"
+{
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.environmentVariables": [
+    { "name": "ANTHROPIC_BASE_URL", "value": "https://api.muteki.site" },
+    { "name": "ANTHROPIC_AUTH_TOKEN", "value": "sk-你的密钥" }
+  ]
+}
+```
+
+修改后重新加载 VS Code 窗口。
+
+## 使用限制 [#使用限制]
+
+通过网关使用时，Remote Control、语音输入等依赖 Anthropic 官方账号的功能不可用。
+
+
+# Codex (/docs/agents/codex)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **OpenAI 分组** 的密钥。Base URL 填 `https://api.muteki.site/v1`，**必须**带 `/v1`。
+</Callout>
+
+Codex CLI、Codex IDE 插件（VS Code 等）和 ChatGPT 桌面客户端里的 Codex **共用同一个配置文件**，配置一次三处都能用。桌面客户端的操作见 [ChatGPT Desktop](/docs/desktop/chatgpt-desktop)。
+
+## 安装 Codex CLI [#安装-codex-cli]
+
+<Tabs groupId="os" items={['Windows', 'macOS / Linux']} persist>
+<Tab>
+在 PowerShell 中运行：
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
+```
+</Tab>
+<Tab>
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+macOS 也可以用 Homebrew：`brew install --cask codex`。
+</Tab>
+</Tabs>
+
+已经装了 Node.js 的话，也可以用 npm 安装：`npm install -g @openai/codex`。
+
+安装完成后运行 `codex --version` 确认安装成功。
+
+## 配置文件位置 [#配置文件位置]
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.codex\config.toml` |
+| macOS / Linux | `~/.codex/config.toml` |
+
+目录或文件不存在就新建。Windows 可以按 `Win + R`，输入 `%USERPROFILE%\.codex` 打开目录。
+
+<Callout type="warn" title="修改前先备份">
+如果已经有自己的 Codex 配置，先复制一份备份，再把下面的内容合并进去，不要直接清空。
+</Callout>
+
+## 方式一：修改官方地址（推荐） [#方式一修改官方地址推荐]
+
+只把 Codex 内置的 OpenAI 服务地址指向网关，改动最少。
+
+<Steps>
+<Step>
+### 修改 config.toml [#修改-configtoml]
+
+把下面三行加到 `config.toml` 的**最开头**：
+
+```toml title="config.toml"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+openai_base_url = "https://api.muteki.site/v1"
+```
+
+`model` 可以换成模型广场里 OpenAI 分组的其他模型。
+</Step>
+
+<Step>
+### 用 API Key 登录 [#用-api-key-登录]
+
+如果之前用 ChatGPT 账号登录过 Codex，先运行 `codex logout` 退出。
+
+然后运行 `codex`，在登录界面选择 **Provide your own API key**，粘贴你的 `sk-` 密钥。
+
+也可以直接用命令登录：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+echo "sk-你的密钥" | codex login --with-api-key
+```
+</Tab>
+<Tab>
+```powershell
+"sk-你的密钥" | codex login --with-api-key
+```
+</Tab>
+</Tabs>
+</Step>
+
+<Step>
+### 验证 [#验证]
+
+运行 `codex`，输入 `/status` 确认当前使用的是 API Key 登录、地址为 `https://api.muteki.site/v1`，再发一句话测试。
+</Step>
+</Steps>
+
+## 方式二：自定义服务商 [#方式二自定义服务商]
+
+如果你还想保留官方 ChatGPT 账号登录，或者需要在多个服务之间切换，可以新增一个独立的服务商，用环境变量传递密钥。
+
+<Steps>
+<Step>
+### 修改 config.toml [#修改-configtoml-1]
+
+```toml title="config.toml"
+model_provider = "muteki"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+
+[model_providers.muteki]
+name = "Maru Code"
+base_url = "https://api.muteki.site/v1"
+wire_api = "responses"
+env_key = "MUTEKI_API_KEY"
+```
+</Step>
+
+<Step>
+### 设置环境变量 [#设置环境变量]
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+把下面这行加到 `~/.zshrc` 或 `~/.bashrc` 末尾，然后新开一个终端：
+
+```bash
+export MUTEKI_API_KEY="sk-你的密钥"
+```
+</Tab>
+<Tab>
+运行下面的命令写入用户环境变量，然后**新开**一个终端窗口：
+
+```powershell
+setx MUTEKI_API_KEY "sk-你的密钥"
+```
+</Tab>
+</Tabs>
+</Step>
+</Steps>
+
+<Callout type="info">
+从桌面图标启动的程序可能读不到终端里设置的环境变量（macOS 尤其明显）。在 ChatGPT 桌面客户端里使用 Codex 时，推荐用方式一。
+</Callout>
+
+## 在 IDE 插件中使用 [#在-ide-插件中使用]
+
+Codex 的 VS Code 等 IDE 插件读取同一个 `config.toml`。按上面任一方式配置好后，在插件的登录界面选择 **Use API Key** 并填入密钥（方式二无需登录），然后重启 IDE。
+
+## 注意事项 [#注意事项]
+
+- **顶层配置必须写在最前面**：`model`、`model_provider`、`openai_base_url` 这些配置项必须放在第一个 `[xxx]` 小节之前，否则会被当成那个小节的内容。
+- **只能写在用户级配置里**：项目目录下的 `.codex/config.toml` 会忽略 `openai_base_url`、`model_provider`、`model_providers` 这些配置。
+- **`wire_api` 只能是 `responses`**：新版 Codex 已移除 `chat`，填 `chat` 会直接报错。
+- **服务商 ID 不能叫 `openai`**：`openai`、`ollama`、`lmstudio` 是保留名称。
+- **改完要重启**：退出当前 Codex 会话后重新运行 `codex`；IDE 插件需要重启 IDE。
+- **图形化配置**：不想手动改文件，可以用 [CC Switch](https://ccswitch.ai) 管理 Codex 配置，或在控制台 **API 密钥** 页面点击 **使用密钥** 复制自动生成的配置。
+
+
+# 创建 API Key (/docs/basics/api-key)
+
+API Key 是客户端调用网关时的身份凭证：系统靠它识别是谁在使用、还剩多少额度、该走哪个分组。
+
+## 创建步骤 [#创建步骤]
+
+<Steps>
+<Step>
+### 注册并登录 [#注册并登录]
+
+打开 [api.muteki.site](https://api.muteki.site) 注册账号。注册需要邮箱验证码，且只支持部分邮箱后缀，以注册页的提示为准。
+</Step>
+
+<Step>
+### 新建密钥 [#新建密钥]
+
+在左侧栏进入 **API 密钥** 页面，点击创建。名称建议按用途命名，例如 `claude-code`、`codex-laptop`、`kelivo-phone`，以后哪个密钥泄露了可以单独删掉。
+</Step>
+
+<Step>
+### 选择分组 [#选择分组]
+
+**一个密钥只属于一个分组**，分组决定了这个密钥能用哪些模型、按什么倍率计费：
+
+| 分组 | 可用模型 | 适合的客户端 |
+| --- | --- | --- |
+| **OpenAI** | GPT 系列（如 `gpt-5.6`） | Codex、各类 OpenAI 兼容聊天 App |
+| **OpenAI (Fast)** | 同上，走 Fast 模式（计费更高） | 对速度要求高的 Codex 用户 |
+| **Anthropic** | Claude 系列（如 `claude-sonnet-5-5`） | Claude Code、Claude 兼容客户端 |
+
+各分组当前的模型列表和倍率以控制台 **模型广场** 为准。没有分配分组的密钥无法调用任何接口。
+</Step>
+
+<Step>
+### 复制密钥 [#复制密钥]
+
+创建完成后复制完整密钥（`sk-` 开头）。下一步配置客户端时会用到。
+</Step>
+</Steps>
+
+<Callout type="error" title="不要把密钥发给别人">
+任何拿到密钥的人都能消耗你的余额。怀疑泄露时，立即在 **API 密钥** 页面删除旧密钥并新建一个。
+</Callout>
+
+## 控制台自带的配置生成器 [#控制台自带的配置生成器]
+
+在 **API 密钥** 页面点击密钥旁的 **使用密钥**，会按分组生成 Claude Code、Codex CLI、OpenCode 等客户端的配置片段，已经填好了你的密钥和正确的 Base URL，可以直接复制。
+
+如果你装了 [CC Switch](https://github.com/farion1231/cc-switch)，还可以用页面上的 **导入到 CC Switch** 按钮一键导入。
+
+## 可选的密钥限制 [#可选的密钥限制]
+
+创建或编辑密钥时可以设置：
+
+- **额度上限**：这个密钥最多能消耗多少，用完后返回 429。
+- **过期时间**：到期后密钥自动失效。
+- **IP 白名单 / 黑名单**：只允许指定 IP 使用。
+
+给临时设备或分享给他人测试的密钥，建议都设上额度和过期时间。
+
+## 查询余额 [#查询余额]
+
+除了在控制台查看，也可以直接用密钥查询（密钥过期或额度用完时也能查）：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+curl https://api.muteki.site/v1/usage -H "Authorization: Bearer sk-你的密钥"
+```
+</Tab>
+<Tab>
+```powershell
+curl.exe https://api.muteki.site/v1/usage -H "Authorization: Bearer sk-你的密钥"
+```
+</Tab>
+</Tabs>
+
+
+# 接口地址与协议 (/docs/basics/endpoints)
+
+## Base URL 速查 [#base-url-速查]
+
+网关同时兼容 Anthropic 和 OpenAI 两套协议。**Base URL 填什么取决于客户端用哪套协议**，而不是用哪家的模型：
+
+| 客户端协议 | Base URL | 典型客户端 |
+| --- | --- | --- |
+| Anthropic Messages | `https://api.muteki.site` | Claude Code、Claude 兼容客户端 |
+| OpenAI Responses | `https://api.muteki.site/v1` | Codex |
+| OpenAI Chat Completions | `https://api.muteki.site/v1` | Kelivo、RikkaHub 等绝大多数聊天 App |
+
+<Callout type="warn" title="为什么 Claude 类不带 /v1？">
+Anthropic 协议的客户端会自动在 Base URL 后面拼上 `/v1/messages`。如果你填了 `https://api.muteki.site/v1`，实际请求就变成 `/v1/v1/messages`，结果是 404。
+</Callout>
+
+<Callout type="info">
+有些客户端会自动在地址后面补 `/v1`，有些不会。具体以各客户端教程为准；不确定时，填完后用客户端的「检测 / 获取模型」按钮试一下。
+</Callout>
+
+## 接口列表 [#接口列表]
+
+| 接口 | 协议 | 说明 |
+| --- | --- | --- |
+| `POST /v1/messages` | Anthropic Messages | Claude Code 等使用 |
+| `POST /v1/chat/completions` | OpenAI Chat Completions | 大多数聊天客户端使用 |
+| `POST /v1/responses` | OpenAI Responses | Codex 使用，支持 WebSocket |
+| `GET /v1/models` | — | 当前密钥可用的模型列表 |
+| `GET /v1/usage` | — | 查询余额与用量 |
+
+### 跨协议调用 [#跨协议调用]
+
+网关会在协议之间自动转换，但有前提：
+
+- **Anthropic 分组**：除了原生的 `/v1/messages`，也可以通过 `/v1/chat/completions` 和 `/v1/responses` 调用 Claude 模型，所以 Claude 模型也能在 Codex 和聊天 App 里使用。如果分组被设置为「仅限 Claude Code」，则只能通过 Claude Code 调用。
+- **OpenAI 分组**：原生支持 `/v1/responses` 和 `/v1/chat/completions`。能否通过 `/v1/messages` 在 Claude Code 里使用 GPT 模型，取决于站点是否为该分组开启了 Messages 转发。判断方法：控制台 **使用密钥** 弹窗里出现了 Claude Code 选项卡，就说明已开启。
+
+## 认证方式 [#认证方式]
+
+以下三种请求头任选其一，客户端一般会自动处理：
+
+```http
+Authorization: Bearer sk-你的密钥
+x-api-key: sk-你的密钥
+x-goog-api-key: sk-你的密钥
+```
+
+<Callout type="error">
+不支持把密钥放在 URL 参数里（`?key=sk-...`），会返回 400 `api_key_in_query_deprecated`。
+</Callout>
+
+## 备用节点 [#备用节点]
+
+除主站 `https://api.muteki.site` 外，还有以下接入节点，地址规则与主站完全相同（把域名换掉即可）：
+
+| 节点 | 地址 |
+| --- | --- |
+| 美国 | `https://api-us.muteki.site` |
+| 美国 2 | `https://api-us2.muteki.site` |
+| 香港 | `https://api-hk.muteki.site` |
+| 日本 | `https://api-jp.muteki.site` |
+
+节点当前是否可用、是否支持 WebSocket 等情况，以控制台 **API 密钥** 页面的说明为准。
+
+## 测试连通性 [#测试连通性]
+
+查询模型列表不消耗额度，适合用来检查密钥和网络是否正常：
+
+<Tabs groupId="shell" items={['macOS / Linux', 'Windows PowerShell']} persist>
+<Tab>
+```bash
+curl https://api.muteki.site/v1/models -H "Authorization: Bearer sk-你的密钥"
+```
+</Tab>
+<Tab>
+```powershell
+curl.exe https://api.muteki.site/v1/models -H "Authorization: Bearer sk-你的密钥"
+```
+</Tab>
+</Tabs>
+
+返回 `{"object":"list","data":[...]}` 就说明密钥可用，`data` 里就是这个密钥能用的模型名。返回错误请对照 [常见问题](/docs/faq)。
+
+
+# Kelivo (/docs/chat/kelivo)
+
+[Kelivo](https://github.com/Chevey339/kelivo) 是一款开源的全平台 LLM 聊天客户端，**已内置 MaruCode 服务商**，填入密钥就能用。
+
+## 下载 [#下载]
+
+| 平台 | 下载 |
+| --- | --- |
+| iOS / iPadOS | [App Store](https://apps.apple.com/us/app/kelivo/id6752122930) |
+| Android / Windows / macOS / Linux | [官网下载页](https://kelivo.psycheas.top/downloads) 或 [GitHub Releases](https://github.com/Chevey339/kelivo/releases/latest) |
+
+内置的 MaruCode 服务商需要 **v1.2.5 及以上** 版本，建议直接安装最新版。
+
+## 方式一：使用内置 MaruCode（推荐） [#方式一使用内置-marucode推荐]
+
+<Callout title="使用哪个分组的密钥？">
+内置服务商走 OpenAI 协议，用 **OpenAI 分组** 的密钥使用 GPT 模型。
+</Callout>
+
+<Steps>
+<Step>
+### 打开 MaruCode [#打开-marucode]
+
+进入 **设置 → 供应商**，点击 **MaruCode**。
+</Step>
+
+<Step>
+### 启用并填写密钥 [#启用并填写密钥]
+
+在 **配置** 标签页打开 **是否启用**，在 **API Key** 中粘贴你的 `sk-` 密钥。地址已经预填好（`https://api.muteki.site/v1`），不需要修改。
+</Step>
+
+<Step>
+### 获取模型 [#获取模型]
+
+切换到 **模型** 标签页，点击 **获取**，勾选你要用的模型。
+</Step>
+
+<Step>
+### 开始聊天 [#开始聊天]
+
+回到聊天界面，选择 MaruCode 下的模型即可。
+</Step>
+</Steps>
+
+内置服务商默认开启余额显示，可以直接在 Kelivo 里看到剩余额度。
+
+<Callout type="info">
+v1.3.1 起内置服务商默认开启 **Response API**。如果你在旧版本里保存过 MaruCode 的配置，升级后不会自动开启；不开也能正常使用。
+</Callout>
+
+## 方式二：手动添加服务商 [#方式二手动添加服务商]
+
+想用 Claude 模型，或者想自己管理配置时，可以手动添加。进入 **设置 → 供应商**，点击 **+**，在 **添加供应商** 中选择对应的标签页：
+
+<Tabs items={['OpenAI 协议（GPT 模型）', 'Claude 协议（Claude 模型）']}>
+<Tab>
+使用 **OpenAI 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+| API 路径 | `/chat/completions` |
+| Response API | 可选，开启后改用 `/responses` 接口 |
+</Tab>
+<Tab>
+使用 **Anthropic 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code Claude` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+
+Kelivo 的 Claude 协议会在地址后面拼 `/messages`，所以这里也要带 `/v1`。
+</Tab>
+</Tabs>
+
+点击 **添加** 后，进入该服务商的 **模型** 标签页点击 **获取** 拉取模型，也可以用 **测试** 检查连接。
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="获取模型失败或模型列表为空？">
+检查 API Base Url：必须以 `/v1` 结尾，**末尾不要加 `/`**（否则会请求成 `//models`）。再确认密钥没有填错。
+</Accordion>
+
+<Accordion title="能获取模型，但聊天时报 404？">
+多半是 **API 路径** 被清空了。清空后输入框里显示的灰色提示看起来像已经填好了，实际是空的。手动输入 `/chat/completions` 即可。
+</Accordion>
+</Accordions>
+
+
+# Open Minis (/docs/chat/openminis)
+
+[Open Minis](https://openminis.app) 是一款开源的手机端侧 AI Agent，支持自定义 OpenAI / Anthropic 兼容的服务商。
+
+## 下载 [#下载]
+
+| 平台 | 下载 |
+| --- | --- |
+| iPhone / iPad | [App Store](https://apps.apple.com/cn/app/open-minis/id6759188481)（需要 iOS 16+） |
+| Android | [GitHub Releases](https://github.com/OpenMinis/OpenMinis/releases) |
+
+## 配置步骤 [#配置步骤]
+
+<Steps>
+<Step>
+### 打开服务商管理 [#打开服务商管理]
+
+进入 **设置**，在 **AI 服务商** 中点击 **管理 AI 服务商**。
+</Step>
+
+<Step>
+### 添加服务商 [#添加服务商]
+
+点击 **+** 进入 **添加 AI 服务商**（第一次使用需要先同意隐私说明），然后按要用的模型选择协议：
+
+- 用 GPT 模型：选择 **OpenAI**，使用 **OpenAI 分组** 的密钥
+- 用 Claude 模型：选择 **Anthropic**，使用 **Anthropic 分组** 的密钥
+</Step>
+
+<Step>
+### 填写信息 [#填写信息]
+
+| 字段 | 填写 |
+| --- | --- |
+| 标签 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| 自定义 API 地址 | `https://api.muteki.site`（**不带** `/v1`） |
+| 自动附加 "/v1" | **保持开启**（默认） |
+| API 格式（仅 OpenAI） | **Chat Completions** 或 **Responses API** 均可 |
+
+填好后点击 **添加 AI 服务商**。
+</Step>
+
+<Step>
+### 获取模型 [#获取模型]
+
+进入刚添加的服务商，在 **模型** 中点击 **刷新** 拉取模型列表。如果拉取失败，可以点击 **添加自定义模型** 手动输入模型 ID（以模型广场为准）。
+</Step>
+</Steps>
+
+<Callout type="warn" title="不要关闭「自动附加 /v1」">
+网上有些教程让你关掉这个开关，那是针对地址不带 `/v1` 的其他服务商。本站按上面的方式填写即可，关掉后 Anthropic 协议会请求到错误的地址。
+</Callout>
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="换了密钥后模型列表没变？">
+模型列表按密钥缓存，在服务商详情页点击 **刷新** 重新获取即可。
+</Accordion>
+</Accordions>
+
+
+# RikkaHub (/docs/chat/rikkahub)
+
+[RikkaHub](https://github.com/rikkahub/rikkahub) 是一款开源的 Android 原生 LLM 聊天客户端，**已内置 MaruCode 提供商**，填入密钥就能用。
+
+## 下载 [#下载]
+
+- [官网下载页](https://rikka-ai.com/download)（推荐）
+- [Google Play](https://play.google.com/store/apps/details?id=me.rerere.rikkahub)
+- [GitHub Releases](https://github.com/rikkahub/rikkahub/releases)（仅 arm64-v8a）
+
+<Callout type="warn">
+RikkaHub 有很多第三方修改版，请从以上官方渠道下载。
+</Callout>
+
+## 方式一：使用内置 MaruCode（推荐） [#方式一使用内置-marucode推荐]
+
+<Callout title="使用哪个分组的密钥？">
+内置提供商走 OpenAI 协议，用 **OpenAI 分组** 的密钥使用 GPT 模型。
+</Callout>
+
+<Steps>
+<Step>
+### 打开 MaruCode [#打开-marucode]
+
+进入 **设置 → 提供商**，点击 **MaruCode**。
+</Step>
+
+<Step>
+### 启用并填写密钥 [#启用并填写密钥]
+
+在 **配置** 标签页打开 **是否启用**，在 **API Key** 中粘贴你的 `sk-` 密钥。地址和接口类型都已经预设好，不需要修改。
+</Step>
+
+<Step>
+### 添加模型 [#添加模型]
+
+切换到 **模型** 标签页，从 **可用模型** 列表中添加你要用的模型。
+</Step>
+
+<Step>
+### 开始聊天 [#开始聊天]
+
+回到聊天界面，选择 MaruCode 下的模型即可。
+</Step>
+</Steps>
+
+## 方式二：手动添加提供商 [#方式二手动添加提供商]
+
+想用 Claude 模型，或者想自己管理配置时，可以手动添加。进入 **设置 → 提供商**，点击 **+** 添加提供商，选择类型后填写：
+
+<Tabs items={['OpenAI 类型（GPT 模型）', 'Claude 类型（Claude 模型）']}>
+<Tab>
+使用 **OpenAI 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+| API 路径 | `/chat/completions` |
+| Response API | 可选，开启后改用 `/responses` 接口 |
+
+开启 Response API 时，App 会提示「大部分提供商并不支持」，本站支持，可以忽略。
+</Tab>
+<Tab>
+使用 **Anthropic 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code Claude` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+
+RikkaHub 的 Claude 类型会在地址后面拼 `/messages`，所以这里也要带 `/v1`。
+</Tab>
+</Tabs>
+
+添加后在 **模型** 标签页添加模型，可以从 **可用模型** 中选择，也可以手动输入模型 ID。
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="可用模型列表是空的？">
+RikkaHub 获取模型失败时不会弹出报错，只会显示空列表。请检查 API Base Url：必须以 `/v1` 结尾，**末尾不要加 `/`**；再确认密钥没有填错、没有多余空格。
+</Accordion>
+
+<Accordion title="切换提供商类型后地址变了？">
+在 OpenAI / Claude 和 Google 类型之间切换时，App 会自动把地址里的 `/v1` 和 `/v1beta` 互相替换。切换后请重新检查 API Base Url。
+</Accordion>
+</Accordions>
+
+
+# ChatGPT Desktop (/docs/desktop/chatgpt-desktop)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **OpenAI 分组** 的密钥。
+</Callout>
+
+2026 年 7 月起，Codex 桌面版已经并入 ChatGPT 桌面客户端（macOS / Windows）。客户端中的 **Codex** 可以接入网关，它和 Codex CLI 共用同一个配置文件。
+
+<Callout type="warn" title="只有 Codex 能接入网关">
+ChatGPT 桌面客户端的聊天功能绑定 ChatGPT 官方账号和订阅，不支持自定义 API。想用图形界面和 GPT 模型聊天，请使用 [Kelivo](/docs/chat/kelivo)、[RikkaHub](/docs/chat/rikkahub) 或 [Open Minis](/docs/chat/openminis)。
+</Callout>
+
+## 配置步骤 [#配置步骤]
+
+<Steps>
+<Step>
+### 安装 ChatGPT 桌面客户端 [#安装-chatgpt-桌面客户端]
+
+从 [chatgpt.com/download](https://chatgpt.com/download) 下载并安装。
+</Step>
+
+<Step>
+### 修改 Codex 配置文件 [#修改-codex-配置文件]
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%USERPROFILE%\.codex\config.toml` |
+| macOS | `~/.codex/config.toml` |
+
+目录或文件不存在就新建。Windows 可以按 `Win + R`，输入 `%USERPROFILE%\.codex` 打开目录。把下面三行加到文件**最开头**：
+
+```toml title="config.toml"
+model = "gpt-5.6"
+model_reasoning_effort = "high"
+openai_base_url = "https://api.muteki.site/v1"
+```
+
+已经按 [Codex](/docs/agents/codex) 教程配置过 CLI 的，可以跳过这一步。
+</Step>
+
+<Step>
+### 完全退出并重新打开客户端 [#完全退出并重新打开客户端]
+
+配置文件只在启动时读取。关闭窗口不等于退出，请从托盘 / 程序坞右键彻底退出后再打开。
+</Step>
+
+<Step>
+### 用 API Key 登录 Codex [#用-api-key-登录-codex]
+
+进入 Codex，在登录界面选择 **Sign in another way**（其他登录方式），选择用 API Key 登录，粘贴你的 `sk-` 密钥后点击 **Continue**。
+</Step>
+</Steps>
+
+## 注意事项 [#注意事项]
+
+- 用 API Key 登录时，部分依赖 ChatGPT 账号的 Codex 功能可能不可用。
+- 想换模型，修改 `config.toml` 中的 `model` 后重启客户端，模型名以模型广场中 OpenAI 分组的列表为准。
+- 不要用「方式二：自定义服务商」中的环境变量方式配置桌面客户端：从桌面图标启动的程序可能读不到终端里设置的环境变量。
+- 更多配置说明见 [Codex](/docs/agents/codex#注意事项)。
+
+
+# Claude Desktop (/docs/desktop/claude-desktop)
+
+<Callout title="使用哪个分组的密钥？">
+使用 **Anthropic 分组** 的密钥。不需要 Anthropic 账号。
+</Callout>
+
+Claude Desktop 官方支持「第三方推理」模式：不登录 Anthropic 账号，把请求发到你指定的网关。聊天和 Code 标签页都会走这个配置。
+
+## 配置步骤 [#配置步骤]
+
+<Steps>
+<Step>
+### 安装 Claude Desktop [#安装-claude-desktop]
+
+从 [claude.com/download](https://claude.com/download) 下载并安装。打开后**不要登录，也不要注册** Anthropic 账号。
+</Step>
+
+<Step>
+### 开启开发者模式 [#开启开发者模式]
+
+在菜单栏选择 **Help → Troubleshooting → Enable Developer Mode**。
+
+Windows 上这些菜单在登录界面左上角的 **☰** 菜单里。
+</Step>
+
+<Step>
+### 打开第三方推理配置 [#打开第三方推理配置]
+
+选择 **Developer → Configure Third-Party Inference…**。
+</Step>
+
+<Step>
+### 填写网关信息 [#填写网关信息]
+
+在 **Connection** 中填写：
+
+| 字段 | 填写 |
+| --- | --- |
+| Inference provider | **Gateway** |
+| Gateway base URL | `https://api.muteki.site` |
+| Gateway API key | `sk-你的密钥` |
+| Credential kind | **Static API key** |
+| Gateway auth scheme | **Bearer**（默认） |
+
+<Callout type="info">
+如果连接测试返回 404，把 Gateway base URL 改成 `https://api.muteki.site/v1` 再试一次。
+</Callout>
+</Step>
+
+<Step>
+### 保存并重启 [#保存并重启]
+
+点击 **Apply Changes**，再点击 **Save & Restart**。重启后在登录界面选择第三方推理的入口，即可开始使用。
+</Step>
+</Steps>
+
+## 模型 [#模型]
+
+Claude Desktop 会自动从网关读取可用的 Claude 模型，一般不需要手动配置。如果模型列表为空，确认密钥属于 Anthropic 分组。
+
+## 注意事项 [#注意事项]
+
+- **Code 标签页不读取 Claude Code 的配置**：Claude Desktop 里的 Code 功能只使用上面的第三方推理配置，不读取 `~/.claude/settings.json` 和 `ANTHROPIC_BASE_URL`。终端版 Claude Code 的配置见 [Claude Code](/docs/agents/claude-code)。
+- **部分功能不可用**：第三方推理模式下没有语音模式和 Remote Control，对话记录只保存在本机。
+- **配置保存位置**：应用内窗口写入的配置保存在下面的目录，建议始终通过应用内窗口修改，不要手动编辑：
+
+| 系统 | 配置目录 | 日志 |
+| --- | --- | --- |
+| Windows | `%LOCALAPPDATA%\Claude-3p\configLibrary\` | `%LOCALAPPDATA%\Claude-3p\Logs\main.log` |
+| macOS | `~/Library/Application Support/Claude-3p/configLibrary/` | `~/Library/Logs/Claude-3p/main.log` |
+
+连接失败时可以查看日志里的具体报错，再对照 [常见问题](/docs/faq)。
+
+
+# 常见问题 (/docs/faq)
+
+## 错误码速查 [#错误码速查]
+
+| 状态码 | 错误信息（关键字） | 原因 | 解决办法 |
+| --- | --- | --- | --- |
+| 401 | `API_KEY_REQUIRED` | 请求里没有带密钥 | 检查客户端的 API Key 是否填写、是否保存 |
+| 401 | 密钥无效 | 密钥填错、多了空格，或密钥已删除 | 重新从控制台复制完整密钥 |
+| 400 | `api_key_in_query_deprecated` | 把密钥放在了 URL 参数里 | 改为在 API Key 字段里填写 |
+| 403 | `INSUFFICIENT_BALANCE` | 账户余额不足 | 在控制台充值 |
+| 403 | `API_KEY_EXPIRED` | 密钥已过期 | 修改过期时间或新建密钥 |
+| 403 | `not assigned to any group` | 密钥没有分组 | 编辑密钥，选择一个分组 |
+| 403 | `does not allow /v1/messages dispatch` | 用 OpenAI 分组的密钥调用了 Claude 协议 | 换用 Anthropic 分组的密钥，或改用 OpenAI 协议的客户端 |
+| 403 | `restricted to Claude Code clients` | 该分组仅限 Claude Code 使用 | 在 Claude Code 中使用，或换其他分组 |
+| 403 | `Access denied. Your IP is …` | 触发了密钥的 IP 白名单 / 黑名单 | 在控制台调整密钥的 IP 限制 |
+| 404 | `model_not_found` | 模型名写错，或当前分组没有这个模型 | 到模型广场复制正确的模型名，确认分组 |
+| 404 | 路径不存在 | Base URL 多了或少了 `/v1` | 对照 [Base URL 速查](/docs/basics/endpoints#base-url-速查) |
+| 429 | `API_KEY_QUOTA_EXHAUSTED` | 密钥设置的额度上限已用完 | 调高密钥额度或新建密钥 |
+
+## 其他问题 [#其他问题]
+
+<Accordions>
+<Accordion title="改了配置但没有生效？">
+大多数客户端只在启动时读取配置。修改配置文件或环境变量后，请**完全退出并重新打开**客户端；命令行工具需要新开一个终端窗口。
+</Accordion>
+
+<Accordion title="请求路径变成了 /v1/v1/... ？">
+Base URL 里多写了 `/v1`，客户端又自己拼了一次。Claude 类客户端填 `https://api.muteki.site`（不带 `/v1`）。
+</Accordion>
+
+<Accordion title="填了 Base URL 和密钥，客户端还是要求登录官方账号？">
+部分官方客户端需要额外的设置才能跳过登录，请看对应客户端教程中的说明。
+</Accordion>
+
+<Accordion title="怎么知道自己的密钥能用哪些模型？">
+用 [测试连通性](/docs/basics/endpoints#测试连通性) 里的命令查询 `/v1/models`，或者在控制台 **模型广场** 查看各分组的模型。
+</Accordion>
+
+<Accordion title="主站访问慢或连不上？">
+可以换用 [备用节点](/docs/basics/endpoints#备用节点)，把 Base URL 里的域名替换掉即可，其余配置不变。
+</Accordion>
+</Accordions>
+
+
+# 快速开始 (/docs)
+
+本文档介绍如何把各家 AI 客户端 / Agent 接入基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 搭建的 API 网关 **Maru Code**（[api.muteki.site](https://api.muteki.site)）。
+
+## 你需要准备的三样东西 [#你需要准备的三样东西]
+
+不管用哪个客户端，需要填写的核心信息都一样：
+
+| 信息 | 填什么 | 从哪里来 |
+| --- | --- | --- |
+| **Base URL** | Claude 类客户端：`https://api.muteki.site`<br />OpenAI 类客户端：`https://api.muteki.site/v1` | 见 [接口地址与协议](/docs/basics/endpoints) |
+| **API Key** | `sk-` 开头的密钥 | 控制台 → **API 密钥** 页面创建，见 [创建 API Key](/docs/basics/api-key) |
+| **模型名** | 例如 `gpt-5.6`、`claude-sonnet-5-5` | 控制台 → **模型广场**，名称要完整复制 |
+
+<Callout type="warn" title="Base URL 最容易填错">
+Claude 类客户端（Claude Code 等）会自己在地址后面拼上 `/v1/messages`，所以**不要**带 `/v1`；OpenAI 类客户端（Codex、大多数聊天 App）一般要求填到 `/v1`。填错会出现 404。
+</Callout>
+
+## 接入步骤 [#接入步骤]
+
+<Steps>
+<Step>
+### 注册账号 [#注册账号]
+
+打开 [api.muteki.site](https://api.muteki.site) 注册并登录。
+</Step>
+
+<Step>
+### 创建 API Key [#创建-api-key]
+
+进入 **API 密钥** 页面新建密钥，**按你要用的模型选择分组**：用 GPT 系列选 OpenAI 分组，用 Claude 系列选 Anthropic 分组。详见 [创建 API Key](/docs/basics/api-key)。
+</Step>
+
+<Step>
+### 按客户端教程填写配置 [#按客户端教程填写配置]
+
+在下面选择你的客户端，照着教程填入 Base URL、API Key 和模型名，然后发一句「你好」测试。
+</Step>
+</Steps>
+
+## 选择你的客户端 [#选择你的客户端]
+
+<Cards>
+  <Card title="Claude Code" href="/docs/agents/claude-code" description="Anthropic 官方终端编程 Agent" />
+  <Card title="Codex" href="/docs/agents/codex" description="OpenAI 官方编程 Agent：CLI / IDE 插件" />
+  <Card title="Claude Desktop" href="/docs/desktop/claude-desktop" description="官方桌面客户端，第三方推理（Gateway）模式" />
+  <Card title="ChatGPT Desktop" href="/docs/desktop/chatgpt-desktop" description="ChatGPT 桌面客户端中的 Codex" />
+  <Card title="Kelivo" href="/docs/chat/kelivo" description="全平台聊天客户端，已内置 MaruCode" />
+  <Card title="RikkaHub" href="/docs/chat/rikkahub" description="Android 聊天客户端，已内置 MaruCode" />
+  <Card title="Open Minis" href="/docs/chat/openminis" description="iOS / Android 端侧 AI Agent" />
+</Cards>
+
+遇到报错请先看 [常见问题](/docs/faq)。

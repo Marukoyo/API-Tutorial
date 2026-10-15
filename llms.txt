@@ -1,0 +1,17 @@
+# Docs
+
+- [快速开始](/docs): 三样东西 + 三个步骤，把任意 AI 客户端接入 Maru Code
+- 准备工作
+  - [创建 API Key](/docs/basics/api-key): 注册账号、创建密钥、选择分组
+  - [接口地址与协议](/docs/basics/endpoints): Base URL 带不带 /v1、支持哪些协议、怎么测试连通性
+- 编程 Agent
+  - [Claude Code](/docs/agents/claude-code): 在 Claude Code（终端 / VS Code 插件）中使用 Maru Code
+  - [Codex](/docs/agents/codex): 在 Codex CLI 和 Codex IDE 插件中使用 Maru Code
+- 桌面应用
+  - [Claude Desktop](/docs/desktop/claude-desktop): 用 Claude Desktop 的第三方推理（Gateway）模式接入 Maru Code
+  - [ChatGPT Desktop](/docs/desktop/chatgpt-desktop): 在 ChatGPT 桌面客户端里的 Codex 中使用 Maru Code
+- 聊天客户端
+  - [Kelivo](/docs/chat/kelivo): 在 Kelivo（Android / iOS / Windows / macOS / Linux）中使用 Maru Code
+  - [RikkaHub](/docs/chat/rikkahub): 在 RikkaHub（Android）中使用 Maru Code
+  - [Open Minis](/docs/chat/openminis): 在 Open Minis（iOS / Android）中使用 Maru Code
+- [常见问题](/docs/faq): 常见报错的原因和解决办法

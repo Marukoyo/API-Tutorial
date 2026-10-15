@@ -1,0 +1,93 @@
+# Kelivo (/docs/chat/kelivo)
+
+[Kelivo](https://github.com/Chevey339/kelivo) 是一款开源的全平台 LLM 聊天客户端，**已内置 MaruCode 服务商**，填入密钥就能用。
+
+## 下载 [#下载]
+
+| 平台 | 下载 |
+| --- | --- |
+| iOS / iPadOS | [App Store](https://apps.apple.com/us/app/kelivo/id6752122930) |
+| Android / Windows / macOS / Linux | [官网下载页](https://kelivo.psycheas.top/downloads) 或 [GitHub Releases](https://github.com/Chevey339/kelivo/releases/latest) |
+
+内置的 MaruCode 服务商需要 **v1.2.5 及以上** 版本，建议直接安装最新版。
+
+## 方式一：使用内置 MaruCode（推荐） [#方式一使用内置-marucode推荐]
+
+<Callout title="使用哪个分组的密钥？">
+内置服务商走 OpenAI 协议，用 **OpenAI 分组** 的密钥使用 GPT 模型。
+</Callout>
+
+<Steps>
+<Step>
+### 打开 MaruCode [#打开-marucode]
+
+进入 **设置 → 供应商**，点击 **MaruCode**。
+</Step>
+
+<Step>
+### 启用并填写密钥 [#启用并填写密钥]
+
+在 **配置** 标签页打开 **是否启用**，在 **API Key** 中粘贴你的 `sk-` 密钥。地址已经预填好（`https://api.muteki.site/v1`），不需要修改。
+</Step>
+
+<Step>
+### 获取模型 [#获取模型]
+
+切换到 **模型** 标签页，点击 **获取**，勾选你要用的模型。
+</Step>
+
+<Step>
+### 开始聊天 [#开始聊天]
+
+回到聊天界面，选择 MaruCode 下的模型即可。
+</Step>
+</Steps>
+
+内置服务商默认开启余额显示，可以直接在 Kelivo 里看到剩余额度。
+
+<Callout type="info">
+v1.3.1 起内置服务商默认开启 **Response API**。如果你在旧版本里保存过 MaruCode 的配置，升级后不会自动开启；不开也能正常使用。
+</Callout>
+
+## 方式二：手动添加服务商 [#方式二手动添加服务商]
+
+想用 Claude 模型，或者想自己管理配置时，可以手动添加。进入 **设置 → 供应商**，点击 **+**，在 **添加供应商** 中选择对应的标签页：
+
+<Tabs items={['OpenAI 协议（GPT 模型）', 'Claude 协议（Claude 模型）']}>
+<Tab>
+使用 **OpenAI 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+| API 路径 | `/chat/completions` |
+| Response API | 可选，开启后改用 `/responses` 接口 |
+</Tab>
+<Tab>
+使用 **Anthropic 分组** 的密钥：
+
+| 字段 | 填写 |
+| --- | --- |
+| 名称 | 随意，例如 `Maru Code Claude` |
+| API Key | `sk-你的密钥` |
+| API Base Url | `https://api.muteki.site/v1` |
+
+Kelivo 的 Claude 协议会在地址后面拼 `/messages`，所以这里也要带 `/v1`。
+</Tab>
+</Tabs>
+
+点击 **添加** 后，进入该服务商的 **模型** 标签页点击 **获取** 拉取模型，也可以用 **测试** 检查连接。
+
+## 常见问题 [#常见问题]
+
+<Accordions>
+<Accordion title="获取模型失败或模型列表为空？">
+检查 API Base Url：必须以 `/v1` 结尾，**末尾不要加 `/`**（否则会请求成 `//models`）。再确认密钥没有填错。
+</Accordion>
+
+<Accordion title="能获取模型，但聊天时报 404？">
+多半是 **API 路径** 被清空了。清空后输入框里显示的灰色提示看起来像已经填好了，实际是空的。手动输入 `/chat/completions` 即可。
+</Accordion>
+</Accordions>
